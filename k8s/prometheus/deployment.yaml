@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+    provider: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      terminationGracePeriodSeconds: 90
+      restartPolicy: Always
+      volumes:
+      - name: timezone-moscow
+        hostPath:
+          path: /usr/share/zoneinfo/Europe/Moscow
+      - name: config
+        configMap:
+          name: prometheus-conf
+      - name: prometheus-rules
+        configMap:
+          name: prometheus-rules
+      containers:
+      - name: prometheus
+        image: prom/prometheus
+        args:
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --web.enable-lifecycle
+          - --log.level=debug
+        ports:
+          - containerPort: 9090
+        volumeMounts:
+        - name: timezone-moscow
+          mountPath: /etc/localtime
+          readOnly: true
+        - name: config
+          mountPath: /etc/prometheus/
+          readOnly: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
